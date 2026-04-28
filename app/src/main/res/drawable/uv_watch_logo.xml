@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Background Sun Circle -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M50,50m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+
+    <!-- Sun Rays -->
+    <path
+        android:strokeColor="#FFA500"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M50,12L50,2 M50,98L50,88 M88,50L98,50 M2,50L12,50 M23.2,23.2L16,16 M76.8,76.8L84,84 M76.8,23.2L84,16 M23.2,76.8L16,84" />
+
+    <!-- Sporty Sunglasses - Left Lens -->
+    <path
+        android:fillColor="#111111"
+        android:pathData="M16,45 L48,41 L48,66 C48,66 30,70 16,62 Z" />
+
+    <!-- Sporty Sunglasses - Right Lens -->
+    <path
+        android:fillColor="#111111"
+        android:pathData="M52,41 L84,45 L84,62 C84,70 70,70 52,66 Z" />
+
+    <!-- Sunglasses - Bridge -->
+    <path
+        android:strokeColor="#111111"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M46,47h8" />
+
+    <!-- Letter U in left lens (Larger) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M24,49 v8 a6,6 0 0 0 12,0 v-8" />
+
+    <!-- Letter V in right lens (Larger) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M60,49 l6,12 l6,-12" />
+
+    <!-- Sporty Reflection highlights -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.25"
+        android:pathData="M20,46 l12,1 l0,3 l-12,1 Z M55,45 l12,1 l0,3 l-12,1 Z" />
+
+</vector>

@@ -17,43 +17,43 @@
         android:strokeLineCap="round"
         android:pathData="M50,12L50,2 M50,98L50,88 M88,50L98,50 M2,50L12,50 M23.2,23.2L16,16 M76.8,76.8L84,84 M76.8,23.2L84,16 M23.2,76.8L16,84" />
 
-    <!-- Sporty Sunglasses - Left Lens -->
+    <!-- Sporty Sunglasses - Left Lens (Enlarged) -->
     <path
         android:fillColor="#111111"
-        android:pathData="M16,45 L48,41 L48,66 C48,66 30,70 16,62 Z" />
+        android:pathData="M12,42 L48,37 L48,70 C48,70 28,75 12,65 Z" />
 
-    <!-- Sporty Sunglasses - Right Lens -->
+    <!-- Sporty Sunglasses - Right Lens (Enlarged) -->
     <path
         android:fillColor="#111111"
-        android:pathData="M52,41 L84,45 L84,62 C84,70 70,70 52,66 Z" />
+        android:pathData="M52,37 L88,42 L88,65 C88,75 72,75 52,70 Z" />
 
     <!-- Sunglasses - Bridge -->
     <path
         android:strokeColor="#111111"
-        android:strokeWidth="4"
+        android:strokeWidth="5"
         android:strokeLineCap="round"
-        android:pathData="M46,47h8" />
+        android:pathData="M46,45h8" />
 
-    <!-- Letter U in left lens (Larger) -->
+    <!-- Letter U in left lens (Symmetric size) -->
     <path
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="3.5"
+        android:strokeWidth="5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M24,49 v8 a6,6 0 0 0 12,0 v-8" />
+        android:pathData="M21,47 v11 a9,9 0 0 0 18,0 v-11" />
 
-    <!-- Letter V in right lens (Larger) -->
+    <!-- Letter V in right lens (Symmetric size) -->
     <path
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="3.5"
+        android:strokeWidth="5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M60,49 l6,12 l6,-12" />
+        android:pathData="M61,47 l9,20 l9,-20" />
 
     <!-- Sporty Reflection highlights -->
     <path
         android:fillColor="#FFFFFF"
         android:fillAlpha="0.25"
-        android:pathData="M20,46 l12,1 l0,3 l-12,1 Z M55,45 l12,1 l0,3 l-12,1 Z" />
+        android:pathData="M16,43 l14,1 l0,3 l-14,1 Z M58,42 l14,1 l0,3 l-14,1 Z" />
 
 </vector>

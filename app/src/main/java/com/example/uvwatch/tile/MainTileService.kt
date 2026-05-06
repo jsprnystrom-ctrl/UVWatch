@@ -1,18 +1,12 @@
 package com.example.uvwatch.tile
 
 import android.content.Context
+import androidx.wear.protolayout.ActionBuilders
 import androidx.wear.protolayout.ColorBuilders.argb
-import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.LayoutElementBuilders
-import androidx.wear.protolayout.LayoutElementBuilders.Box
-import androidx.wear.protolayout.LayoutElementBuilders.Column
-import androidx.wear.protolayout.LayoutElementBuilders.Image
-import androidx.wear.protolayout.LayoutElementBuilders.Row
-import androidx.wear.protolayout.LayoutElementBuilders.Spacer
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.TimelineBuilders
-import androidx.wear.protolayout.material.Colors
 import androidx.wear.protolayout.material.Text
 import androidx.wear.protolayout.material.Typography
 import androidx.wear.protolayout.material.layouts.PrimaryLayout
@@ -21,14 +15,11 @@ import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.tooling.preview.Preview
 import androidx.wear.tiles.tooling.preview.TilePreviewData
 import androidx.wear.tooling.preview.devices.WearDevices
-import com.example.uvwatch.R
 import com.example.uvwatch.UVRepository
 import com.google.android.horologist.annotations.ExperimentalHorologistApi
 import com.google.android.horologist.tiles.SuspendingTileService
 
 private const val RESOURCES_VERSION = "1"
-private const val ID_LOGO = "logo"
-private const val ID_IMAGE = "tile_image"
 
 @OptIn(ExperimentalHorologistApi::class)
 class MainTileService : SuspendingTileService() {
@@ -37,26 +28,6 @@ class MainTileService : SuspendingTileService() {
         requestParams: RequestBuilders.ResourcesRequest
     ) = ResourceBuilders.Resources.Builder()
         .setVersion(RESOURCES_VERSION)
-        .addIdToImageMapping(
-            ID_LOGO,
-            ResourceBuilders.ImageResource.Builder()
-                .setAndroidResourceByResId(
-                    ResourceBuilders.AndroidImageResourceByResId.Builder()
-                        .setResourceId(R.drawable.uv_watch_logo)
-                        .build()
-                )
-                .build()
-        )
-        .addIdToImageMapping(
-            ID_IMAGE,
-            ResourceBuilders.ImageResource.Builder()
-                .setAndroidResourceByResId(
-                    ResourceBuilders.AndroidImageResourceByResId.Builder()
-                        .setResourceId(R.drawable.tile_preview)
-                        .build()
-                )
-                .build()
-        )
         .build()
 
     override suspend fun tileRequest(
@@ -93,42 +64,15 @@ private fun tileLayout(
     return PrimaryLayout.Builder(requestParams.deviceConfiguration)
         .setResponsiveContentInsetEnabled(true)
         .setContent(
-            Box.Builder()
-                .addContent(
-                    // Bakgrundsbild (tile_preview)
-                    Image.Builder()
-                        .setResourceId(ID_IMAGE)
-                        .setWidth(dp(160f))
-                        .setHeight(dp(160f))
-                        .setModifiers(
-                            ModifiersBuilders.Modifiers.Builder()
-                                .setOpacity(0.4f) // Gör bilden lite transparent så texten syns
-                                .build()
-                        )
-                        .build()
-                )
-                .addContent(
-                    Column.Builder()
-                        .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-                        .addContent(
-                            Image.Builder()
-                                .setResourceId(ID_LOGO)
-                                .setWidth(dp(32f))
-                                .setHeight(dp(32f))
-                                .build()
-                        )
-                        .addContent(Spacer.Builder().setHeight(dp(8f)).build())
-                        .addContent(
-                            Text.Builder(context, "UV $uvIndex")
-                                .setColor(argb(uvColor))
-                                .setTypography(Typography.TYPOGRAPHY_TITLE2)
-                                .build()
-                        )
-                        .addContent(Spacer.Builder().setHeight(dp(4f)).build())
-                        .addContent(
-                            Text.Builder(context, "Din position")
-                                .setColor(argb(0xCCFFFFFF.toInt()))
-                                .setTypography(Typography.TYPOGRAPHY_CAPTION1)
+            Text.Builder(context, "UV $uvIndex")
+                .setColor(argb(uvColor))
+                .setTypography(Typography.TYPOGRAPHY_TITLE1)
+                .setModifiers(
+                    ModifiersBuilders.Modifiers.Builder()
+                        .setClickable(
+                            ModifiersBuilders.Clickable.Builder()
+                                .setId("launch_app")
+                                .setOnClick(ActionBuilders.LaunchAction.Builder().build())
                                 .build()
                         )
                         .build()
@@ -152,26 +96,6 @@ private fun getUVColorInt(uv: Float): Int {
 fun tilePreview(context: Context) = TilePreviewData({
     ResourceBuilders.Resources.Builder()
         .setVersion(RESOURCES_VERSION)
-        .addIdToImageMapping(
-            ID_LOGO,
-            ResourceBuilders.ImageResource.Builder()
-                .setAndroidResourceByResId(
-                    ResourceBuilders.AndroidImageResourceByResId.Builder()
-                        .setResourceId(R.drawable.uv_watch_logo)
-                        .build()
-                )
-                .build()
-        )
-        .addIdToImageMapping(
-            ID_IMAGE,
-            ResourceBuilders.ImageResource.Builder()
-                .setAndroidResourceByResId(
-                    ResourceBuilders.AndroidImageResourceByResId.Builder()
-                        .setResourceId(R.drawable.tile_preview)
-                        .build()
-                )
-                .build()
-        )
         .build()
 }) {
     TileBuilders.Tile.Builder()

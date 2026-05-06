@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.ceil
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -273,7 +274,12 @@ fun UVGraph(forecast: List<Pair<Int, Float>>, currentHour: Int, modifier: Modifi
         if (forecast.isEmpty()) return@Canvas
 
         val maxUVVal = (forecast.maxByOrNull { it.second }?.second ?: 0f)
-        val maxUVScale = maxUVVal.coerceAtLeast(5f)
+
+        // Välj ett snyggt steg (2 eller 3) beroende på UV-indexets höjd
+        val step = if (maxUVVal <= 6f) 2 else 3
+        val numSteps = ceil(maxUVVal / step).toInt().coerceAtLeast(2)
+        val maxUVScale = (numSteps * step).toFloat()
+
         val horizontalPadding = 15.dp.toPx()
         val bottomPadding = 18.dp.toPx()
 
@@ -287,8 +293,9 @@ fun UVGraph(forecast: List<Pair<Int, Float>>, currentHour: Int, modifier: Modifi
             textSize = 9.sp.toPx()
         }
 
-        val yLevels = listOf(0, (maxUVScale / 2).toInt(), maxUVScale.toInt())
-        yLevels.forEach { level ->
+        // Rita linjer för varje steg (t.ex. 0, 3, 6, 9)
+        for (i in 0..numSteps) {
+            val level = i * step
             val y = height - (level.toFloat() / maxUVScale * height)
             drawLine(
                 color = axisColor,

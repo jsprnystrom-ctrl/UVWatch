@@ -4,18 +4,32 @@
     android:height="108dp"
     android:viewportWidth="100"
     android:viewportHeight="100">
-    <!-- Centered Sun -->
+    <!-- Centered Sun (Slightly smaller to fit safe zone) -->
     <path
         android:fillColor="#FFD700"
-        android:pathData="M50,50m-25,0a25,25 0,1 1,50 0a25,25 0,1 1,-50 0" />
-    <!-- Rays -->
+        android:pathData="M50,50m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0" />
+
+    <!-- Rays (Moved inwards to avoid clipping) -->
     <path
         android:strokeColor="#FFA500"
         android:strokeWidth="3"
         android:strokeLineCap="round"
-        android:pathData="M50,15L50,5M50,95L50,85M85,50L95,50M5,50L15,50M25,25L18,18M75,75L82,82M75,25L82,18M25,75L18,82" />
-    <!-- Darker Sunglasses -->
+        android:pathData="M50,28 L50,18 M50,72 L50,82 M72,50 L82,50 M28,50 L18,50 M34.5,34.5 L27.4,27.4 M65.5,65.5 L72.6,72.6 M65.5,34.5 L72.6,27.4 M34.5,65.5 L27.4,72.6" />
+
+    <!-- UV Text in Black (Centered and scaled to fit the smaller sun) -->
+    <!-- U -->
     <path
-        android:fillColor="#222222"
-        android:pathData="M35,46h30c2,0 3,2 3,4v1c0,6 -6,11 -15,11s-15,-5 -15,-11v-1c0,-2 1,-4 3,-4z" />
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M38,44 v7 a4,4 0 0 0 8,0 v-7" />
+
+    <!-- V -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M54,44 l4,12 l4,-12" />
 </vector>

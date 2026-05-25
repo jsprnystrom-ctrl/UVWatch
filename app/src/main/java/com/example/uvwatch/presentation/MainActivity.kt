@@ -11,6 +11,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,77 +57,67 @@ fun WearApp() {
     
     var isLoading by remember { mutableStateOf(false) }
     var loadingStatus by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
     var hasPermission by remember { mutableStateOf(false) }
-    var lastUpdate by remember { mutableStateOf("") }
-    var locationDebugText by remember { mutableStateOf("") }
-    var cityName by remember { mutableStateOf("") }
-    var errorDebugText by remember { mutableStateOf("") }
-    var isFallbackLocation by remember { mutableStateOf(false) }
+    
+    // UI-state som uppdateras från repository
+    var cityName by remember { mutableStateOf(UVRepository.getLastCityName()) }
+    var lastUpdateTime by remember { mutableStateOf(UVRepository.getLastFetchTime(context)) }
+    var isFallbackLocation by remember { mutableStateOf(UVRepository.isLastFallback()) }
 
     suspend fun updateData(useFallback: Boolean = false) {
         if (isLoading) return
         isLoading = true
-        errorDebugText = ""
-        isFallbackLocation = false
+        errorMessage = ""
         
         try {
             loadingStatus = "Söker position..."
             val loc = if (useFallback) null else locationHelper.getCurrentLocation()
             
-            val lat: Double
-            val lng: Double
-            
             if (loc != null) {
-                lat = loc.latitude
-                lng = loc.longitude
-                locationDebugText = "${String.format(Locale.US, "%.2f", lat)}, ${String.format(Locale.US, "%.2f", lng)}"
-                
                 loadingStatus = "Hämtar data..."
                 
-                // Kör UV-hämtning och Geocoding samtidigt
-                val uvJob = scope.async { UVRepository.fetchUVData(context, lat, lng) }
+                // Kör UV-hämtning och Geocoding
+                val uvJob = scope.async { UVRepository.fetchUVData(context, loc.latitude, loc.longitude) }
                 val geoJob = scope.async {
                     try {
                         val geocoder = Geocoder(context, Locale.getDefault())
                         val addresses = withContext(Dispatchers.IO) {
                             @Suppress("DEPRECATION")
-                            geocoder.getFromLocation(lat, lng, 1)
+                            geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
                         }
                         val addr = addresses?.firstOrNull()
-                        addr?.locality ?: addr?.subLocality ?: addr?.featureName ?: addr?.subAdminArea ?: addr?.adminArea
+                        addr?.locality ?: addr?.subLocality ?: addr?.featureName ?: String.format(Locale.US, "%.2f, %.2f", loc.latitude, loc.longitude)
                     } catch (e: Exception) {
-                        null
+                        String.format(Locale.US, "%.2f, %.2f", loc.latitude, loc.longitude)
                     }
                 }
 
                 val success = uvJob.await()
-                val foundName = geoJob.await()
-                
-                cityName = foundName ?: "Lokaliserad position"
+                val foundCity = geoJob.await()
                 
                 if (success) {
-                    val now = Calendar.getInstance()
-                    lastUpdate = "Uppdaterad: ${now.get(Calendar.HOUR_OF_DAY)}:${String.format(Locale.US, "%02d", now.get(Calendar.MINUTE))}"
+                    cityName = foundCity
+                    lastUpdateTime = UVRepository.getLastFetchTime(context)
+                    isFallbackLocation = false
+                    UVRepository.setLastCityName(context, cityName)
                 } else {
-                    errorDebugText = "API-fel"
+                    errorMessage = "Kunde inte hämta UV-data"
                 }
             } else {
-                lat = 57.76
-                lng = 11.94
-                locationDebugText = "57.76, 11.94"
-                cityName = "Tuve"
-                isFallbackLocation = true
-                
                 loadingStatus = "Hämtar data..."
-                val success = UVRepository.fetchUVData(context, lat, lng)
+                val success = UVRepository.fetchUVData(context, 57.76, 11.94)
                 if (success) {
-                    val now = Calendar.getInstance()
-                    lastUpdate = "Uppdaterad: ${now.get(Calendar.HOUR_OF_DAY)}:${String.format(Locale.US, "%02d", now.get(Calendar.MINUTE))}"
+                    cityName = "Tuve"
+                    lastUpdateTime = UVRepository.getLastFetchTime(context)
+                    isFallbackLocation = true
+                    UVRepository.setLastCityName(context, "Tuve")
+                } else {
+                    errorMessage = "Kunde inte hämta data"
                 }
-                if (!useFallback) errorDebugText = "GPS saknas"
             }
         } catch (e: Exception) {
-            errorDebugText = "Fel: ${e.message?.take(15)}"
+            errorMessage = "Ett fel uppstod vid uppdatering"
         } finally {
             isLoading = false
             loadingStatus = ""
@@ -151,113 +143,147 @@ fun WearApp() {
     }
 
     UVWatchTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colors.background)
-                .clickable { scope.launch { updateData() } },
-            contentAlignment = Alignment.Center
+        Scaffold(
+            timeText = { TimeText() }
         ) {
-            if (!hasPermission) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Behöver position", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    CompactChip(
-                        label = { Text("Tillåt") },
-                        onClick = {
-                            permissionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.ACCESS_COARSE_LOCATION
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colors.background)
+                    .clickable { scope.launch { updateData() } },
+                contentAlignment = Alignment.Center
+            ) {
+                if (!hasPermission) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
+                        Text("Position krävs", textAlign = TextAlign.Center, style = MaterialTheme.typography.caption2)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CompactChip(
+                            label = { Text("Tillåt") },
+                            onClick = {
+                                permissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
                                 )
-                            )
-                        }
-                    )
-                }
-            } else {
-                val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-                val uvIndex = UVRepository.getUVIndex()
-                val forecast = UVRepository.getUVForecast()
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                ) {
-                    // UV Index
-                    Text(
-                        text = "UV $uvIndex",
-                        style = MaterialTheme.typography.title1,
-                        color = getUVColor(uvIndex.toFloat())
-                    )
-                    
-                    Spacer(modifier = Modifier.height(14.dp))
-                    
-                    // Graph
-                    if (forecast.isNotEmpty()) {
-                        UVGraph(
-                            forecast = forecast,
-                            currentHour = currentHour,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(70.dp) 
+                            }
                         )
-                    } else if (isLoading) {
-                        Box(modifier = Modifier.height(70.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                        }
-                    } else {
-                        Box(modifier = Modifier.height(70.dp), contentAlignment = Alignment.Center) {
-                            Text("Tryck för att hämta", style = MaterialTheme.typography.caption2)
-                        }
                     }
+                } else {
+                    val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                    val uvIndex = UVRepository.getUVIndex()
+                    val forecast = UVRepository.getUVForecast()
 
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // Location Info
-                    if (cityName.isNotEmpty() || isFallbackLocation) {
+                    // Huvudinnehåll
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    ) {
+                        // UV Index
                         Text(
-                            text = cityName.ifEmpty { if (isFallbackLocation) "Tuve" else "" },
-                            style = MaterialTheme.typography.caption1,
-                            color = Color.White,
-                            maxLines = 1
+                            text = if (forecast.isEmpty() && !isLoading) "UV -" else "UV $uvIndex",
+                            style = MaterialTheme.typography.title1,
+                            color = if (forecast.isEmpty() && !isLoading) Color.Gray else getUVColor(uvIndex.toFloat())
                         )
                         
-                        Text(
-                            text = if (isFallbackLocation) "Standardplats (Tuve)" else "Lokal prognos (GPS)",
-                            style = MaterialTheme.typography.caption3,
-                            color = if (isFallbackLocation) Color.Yellow else Color(0xFF00E5FF),
-                            fontSize = 8.sp
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Mitten-sektion (Graf / Laddning / Felmeddelande)
+                        Box(modifier = Modifier.fillMaxWidth().height(70.dp), contentAlignment = Alignment.Center) {
+                            if (forecast.isNotEmpty()) {
+                                // Scenario 1: Data finns. Visa alltid grafen.
+                                UVGraph(
+                                    forecast = forecast,
+                                    currentHour = currentHour,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else if (isLoading) {
+                                // Scenario 2: Ingen data sparad. Visa stora snurran i mitten.
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = loadingStatus,
+                                        style = MaterialTheme.typography.caption3,
+                                        color = Color.Yellow,
+                                        fontSize = 8.sp
+                                    )
+                                }
+                            } else {
+                                // Felmeddelande om vi varken har data eller laddar
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = if (errorMessage.isNotEmpty()) errorMessage else "Ingen data hittades",
+                                        style = MaterialTheme.typography.caption3,
+                                        color = Color.Red.copy(alpha = 0.8f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Text(
+                                        text = "Tryck för att hämta",
+                                        style = MaterialTheme.typography.caption3,
+                                        fontSize = 7.sp,
+                                        color = Color.Gray,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Platsnamn i mitten
+                        if (cityName.isNotEmpty() || lastUpdateTime != "--:--") {
+                            Text(
+                                text = cityName.ifEmpty { "Söker plats..." },
+                                style = MaterialTheme.typography.caption1,
+                                color = if (isFallbackLocation) Color.Yellow.copy(alpha = 0.8f) else Color.White,
+                                maxLines = 1,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
 
-                    // Coordinates (Debug/Trust)
-                    if (locationDebugText.isNotEmpty()) {
-                        Text(
-                            text = locationDebugText,
-                            style = MaterialTheme.typography.caption3,
-                            color = Color.White.copy(alpha = 0.3f),
-                            fontSize = 7.sp
-                        )
-                    }
+                    // Statusrad längst ner - ALLTID SYNLIG
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 14.dp)
+                        ) {
+                            val hasData = lastUpdateTime != "--:--"
+                            val isFresh = if (hasData) UVRepository.isDataFresh() else false
 
-                    // Status/Time
-                    Text(
-                        text = if (isLoading && loadingStatus.isNotEmpty()) loadingStatus else if (lastUpdate.isNotEmpty()) lastUpdate else "Hämtar data...",
-                        style = MaterialTheme.typography.caption3,
-                        color = if (isLoading) Color.Yellow else Color.Gray,
-                        fontSize = 8.sp
-                    )
-                }
-                
-                if (isLoading && forecast.isNotEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(top = 24.dp)
-                                .size(12.dp),
-                            strokeWidth = 2.dp
-                        )
+                            if (hasData) {
+                                // Färskhetsindikator (prick)
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .background(
+                                            color = if (isFresh) Color.Green else Color.Gray, 
+                                            shape = CircleShape
+                                        )
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            
+                            // Tidsvisning
+                            Text(
+                                text = "Data: $lastUpdateTime" + if (isFallbackLocation && hasData) " (Std)" else "",
+                                style = MaterialTheme.typography.caption3,
+                                fontSize = 8.sp,
+                                color = Color.White.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+                    
+                    // Diskret laddningsindikator under klockan (Scenario 1)
+                    if (isLoading && forecast.isNotEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(top = 26.dp).size(10.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
                     }
                 }
             }
@@ -274,8 +300,6 @@ fun UVGraph(forecast: List<Pair<Int, Float>>, currentHour: Int, modifier: Modifi
         if (forecast.isEmpty()) return@Canvas
 
         val maxUVVal = (forecast.maxByOrNull { it.second }?.second ?: 0f)
-
-        // Välj ett snyggt steg (2 eller 3) beroende på UV-indexets höjd
         val step = if (maxUVVal <= 6f) 2 else 3
         val numSteps = ceil(maxUVVal / step).toInt().coerceAtLeast(2)
         val maxUVScale = (numSteps * step).toFloat()
@@ -293,7 +317,6 @@ fun UVGraph(forecast: List<Pair<Int, Float>>, currentHour: Int, modifier: Modifi
             textSize = 9.sp.toPx()
         }
 
-        // Rita linjer för varje steg (t.ex. 0, 3, 6, 9)
         for (i in 0..numSteps) {
             val level = i * step
             val y = height - (level.toFloat() / maxUVScale * height)
@@ -318,7 +341,7 @@ fun UVGraph(forecast: List<Pair<Int, Float>>, currentHour: Int, modifier: Modifi
             0.0f to Color(0xFF9132A8),
             (1.0f - 11f / maxUVScale).coerceIn(0f, 1f) to Color(0xFF9132A8),
             (1.0f - 8f / maxUVScale).coerceIn(0f, 1f) to Color.Red,
-            (1.0f - 6f / maxUVScale).coerceIn(0f, 1f) to Color(0xFFFFA500),
+            (1.0f - 6f / maxUVScale).coerceIn(0f, 1f) to Color.Red,
             (1.0f - 3f / maxUVScale).coerceIn(0f, 1f) to Color.Yellow,
             1.0f to Color.Green,
             startY = 0f,
@@ -329,7 +352,7 @@ fun UVGraph(forecast: List<Pair<Int, Float>>, currentHour: Int, modifier: Modifi
             0.0f to Color(0xFF9132A8).copy(alpha = 0.4f),
             (1.0f - 11f / maxUVScale).coerceIn(0f, 1f) to Color(0xFF9132A8).copy(alpha = 0.4f),
             (1.0f - 8f / maxUVScale).coerceIn(0f, 1f) to Color.Red.copy(alpha = 0.4f),
-            (1.0f - 6f / maxUVScale).coerceIn(0f, 1f) to Color(0xFFFFA500).copy(alpha = 0.4f),
+            (1.0f - 6f / maxUVScale).coerceIn(0f, 1f) to Color.Red.copy(alpha = 0.4f),
             (1.0f - 3f / maxUVScale).coerceIn(0f, 1f) to Color.Yellow.copy(alpha = 0.4f),
             1.0f to Color.Green.copy(alpha = 0.2f),
             startY = 0f,
